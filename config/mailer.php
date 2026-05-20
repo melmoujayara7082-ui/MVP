@@ -6,7 +6,7 @@ define('SMTP_USER',          'banerasta4@gmail.com');
 define('SMTP_PASS',          'lcyu deqa avhl nkdh');
 define('SMTP_FROM_NAME',     'EventHub Pro — ENSA Marrakech');
 define('SMTP_ENCRYPTION',    'tls');
-define('SMTP_TEST_RECEIVER', 'walidbouarifi@gmail.com');
+define('SMTP_TEST_RECEIVER', 'walid.bouarifi@gmail.com');
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
