@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EventHub Pro — MVP · ENSA Marrakech</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy:  #0f1f3d;
+      --blue:  #2563eb;
+      --amber: #f59e0b;
+      --teal:  #0d9488;
+      --slate: #64748b;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'DM Sans', sans-serif; background: #f1f5f9; color: #1e293b; }
+    .font-display, h1,h2,h3,h4 { font-family: 'Syne', sans-serif; }
+
+    /* gradient hero */
+    .hero-bg {
+      background: linear-gradient(135deg, #0f1f3d 0%, #1e3a5f 45%, #0c4a6e 100%);
+      background-size: 200% 200%;
+      animation: grad 10s ease infinite;
+    }
+    @keyframes grad { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+
+    .dot-bg {
+      background-image: radial-gradient(circle, rgba(255,255,255,.07) 1px, transparent 1px);
+      background-size: 26px 26px;
+    }
+
+    /* cards */
+    .event-card { transition: transform .22s ease, box-shadow .22s ease; }
+    .event-card:hover { transform: translateY(-5px); box-shadow: 0 18px 40px rgba(15,31,61,.14); }
+
+    /* badge */
+    .badge {
+      font-family: 'Syne', sans-serif;
+      font-size: .64rem; letter-spacing: .07em;
+      text-transform: uppercase; font-weight: 700;
+      padding: 3px 10px; border-radius: 99px;
+    }
+
+    /* capacity bar */
+    .cap-bar { height: 5px; border-radius: 99px; background: #e2e8f0; overflow: hidden; }
+    .cap-bar-fill { height: 100%; border-radius: 99px; transition: width .6s ease; }
+
+    /* skeleton */
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position:  400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 50%, #e2e8f0 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+    }
+
+    /* toast */
+    #toast-container { position:fixed; bottom:24px; right:24px; z-index:999; display:flex; flex-direction:column; gap:10px; }
+    .toast {
+      min-width:280px; padding:14px 18px; border-radius:10px;
+      color:#fff; font-size:.9rem; font-family:'DM Sans',sans-serif;
+      box-shadow: 0 8px 24px rgba(0,0,0,.2);
+      animation: slideIn .3s ease;
+    }
+    @keyframes slideIn { from{transform:translateX(120%);opacity:0} to{transform:translateX(0);opacity:1} }
+    .toast.success { background:#16a34a; }
+    .toast.error   { background:#dc2626; }
+    .toast.info    { background:#2563eb; }
+
+    /* modal */
+    .modal-overlay {
+      position:fixed; inset:0; z-index:50;
+      background:rgba(15,31,61,.55); backdrop-filter:blur(5px);
+      display:flex; align-items:center; justify-content:center;
+      animation:fadeIn .2s ease;
+    }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .modal-box {
+      background:#fff; border-radius:16px;
+      width:min(560px,94vw); max-height:90vh; overflow-y:auto;
+      box-shadow:0 32px 64px rgba(15,31,61,.25);
+      animation:popIn .25s ease;
+    }
+    @keyframes popIn { from{transform:scale(.92);opacity:0} to{transform:scale(1);opacity:1} }
+
+    /* form */
+    .form-input {
+      width:100%; padding:10px 14px;
+      border:1.5px solid #cbd5e1; border-radius:8px;
+      font-family:'DM Sans',sans-serif; font-size:.95rem;
+      background:#fff; color:#1e293b;
+      transition:border-color .2s, box-shadow .2s; outline:none;
+    }
+    .form-input:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+
+    /* spinner */
+    .spinner {
+      width:17px; height:17px;
+      border:2.5px solid rgba(255,255,255,.35); border-top-color:#fff;
+      border-radius:50%; animation:spin .7s linear infinite; display:inline-block;
+    }
+    @keyframes spin { to{transform:rotate(360deg)} }
+
+    /* tabs */
+    .tab-btn {
+      font-family:'Syne',sans-serif; font-size:.75rem; font-weight:700;
+      letter-spacing:.06em; text-transform:uppercase;
+      padding:8px 18px; border-radius:99px; cursor:pointer; transition:all .2s;
+    }
+    .tab-btn.active { background:#0f1f3d; color:#fff; }
+    .tab-btn:not(.active) { background:transparent; color:#64748b; }
+    .tab-btn:not(.active):hover { background:#e2e8f0; }
+
+    /* nav */
+    .nav-link {
+      font-family:'Syne',sans-serif; font-size:.78rem; font-weight:600;
+      letter-spacing:.07em; text-transform:uppercase;
+      color:rgba(255,255,255,.65); transition:color .2s;
+      padding-bottom:2px; border-bottom:2px solid transparent;
+    }
+    .nav-link:hover { color:#fff; }
+    .nav-link.active { color:#f59e0b; border-bottom-color:#f59e0b; }
+
+    /* stat */
+    .stat-num { font-family:'Syne',sans-serif; font-size:2.4rem; font-weight:800; line-height:1; }
+
+    /* todo */
+    .todo-block {
+      background:#fff7ed; border-left:4px solid #f59e0b;
+      padding:10px 14px; border-radius:0 8px 8px 0;
+      font-family:'Courier New',monospace; font-size:.8rem; color:#92400e;
+      margin:6px 0; white-space:pre-wrap; line-height:1.5;
+    }
+
+    /* kpi card */
+    .kpi { background:#fff; border-radius:16px; padding:20px; border:1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="hero-bg dot-bg sticky top-0 z-40 shadow-lg">
+  <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:#f59e0b">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      <span class="font-display text-white text-lg font-bold">EventHub <span style="color:#f59e0b">Pro</span></span>
+    </div>
+    <div class="hidden md:flex items-center gap-7">
+      <button class="nav-link active" onclick="showSection('events',this)">Événements</button>
+      <button class="nav-link" onclick="showSection('dashboard',this)">Dashboard</button>
+      <button class="nav-link" onclick="showSection('create',this)">Créer</button>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+      <span class="text-white/50 text-xs font-display">Live</span>
+      <button onclick="openLogin()"
+        class="ml-3 px-4 py-2 rounded-lg text-xs font-display font-bold tracking-widest uppercase"
+        style="background:#f59e0b; color:#0f1f3d">Connexion</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero-bg dot-bg py-14 px-6">
+  <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+    <div>
+      <span class="inline-block badge mb-4 text-xs" style="background:rgba(245,158,11,.2);color:#f59e0b">
+        MVP · Examen PHP Avancé · ENSA Marrakech
+      </span>
+      <h1 class="text-4xl md:text-5xl font-display font-extrabold text-white leading-tight mb-4">
+        Gérez vos<br/><span style="color:#f59e0b">événements</span><br/>intelligemment
+      </h1>
+      <p class="text-slate-300 text-sm leading-relaxed mb-8">
+        Plateforme de gestion d'événements — Inscriptions, tickets PDF,<br/>notifications email, statistiques temps réel.
+      </p>
+      <div class="flex flex-wrap gap-3">
+        <button onclick="showSection('events', document.querySelectorAll('.nav-link')[0])"
+          class="px-6 py-3 rounded-xl font-display font-bold text-sm text-white"
+          style="background:#2563eb">Voir les événements →</button>
+        <button onclick="showSection('create', document.querySelectorAll('.nav-link')[2])"
+          class="px-6 py-3 rounded-xl font-display font-bold text-sm border border-white/20 text-white hover:bg-white/10 transition">
+          + Créer un événement</button>
+      </div>
+    </div>
+    <!-- stats hero -->
+    <div class="grid grid-cols-2 gap-4">
+      <div class="rounded-2xl p-5" style="background:rgba(255,255,255,.08)">
+        <div class="stat-num text-white" id="h-total">—</div>
+        <div class="text-white/50 text-sm mt-1 font-display">Événements</div>
+      </div>
+      <div class="rounded-2xl p-5" style="background:rgba(255,255,255,.08)">
+        <div class="stat-num text-white" id="h-inscrits">—</div>
+        <div class="text-white/50 text-sm mt-1 font-display">Inscrits</div>
+      </div>
+      <div class="rounded-2xl p-5" style="background:rgba(255,255,255,.08)">
+        <div class="stat-num" style="color:#f59e0b" id="h-complets">—</div>
+        <div class="text-white/50 text-sm mt-1 font-display">Complets</div>
+      </div>
+      <div class="rounded-2xl p-5" style="background:rgba(255,255,255,.08)">
+        <div class="stat-num text-teal-400" id="h-new24">—</div>
+        <div class="text-white/50 text-sm mt-1 font-display">Nouvelles 24h</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MAIN -->
+<main class="max-w-6xl mx-auto px-6 py-10">
+
+  <!-- ── EVENTS ── -->
+  <section id="sec-events">
+    <!-- Filtres -->
+    <div class="flex flex-col md:flex-row gap-4 mb-8 items-start md:items-center">
+      <div class="relative flex-1">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+          fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input id="search-input" type="text" placeholder="Rechercher un événement…"
+          class="form-input pl-10" oninput="debounceSearch()" />
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <select id="filter-cat" class="form-input w-auto text-sm" onchange="loadEvents()">
+          <option value="">Toutes catégories</option>
+          <option value="tech">Tech</option>
+          <option value="design">Design</option>
+          <option value="business">Business</option>
+          <option value="science">Science</option>
+        </select>
+        <select id="filter-places" class="form-input w-auto text-sm" onchange="loadEvents()">
+          <option value="">Toutes places</option>
+          <option value="1">Avec places dispo</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-7 bg-white border border-slate-200 p-1 rounded-full w-fit shadow-sm">
+      <button class="tab-btn active" onclick="filterTab('all',this)">Tous</button>
+      <button class="tab-btn" onclick="filterTab('upcoming',this)">À venir</button>
+      <button class="tab-btn" onclick="filterTab('full',this)">Complets</button>
+    </div>
+
+    <!-- Grid -->
+    <div id="events-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+    <!-- Pagination -->
+    <div id="pagination-container" class="flex justify-center gap-2 mt-8"></div>
+
+    <!-- TODO info -->
+    <div class="mt-8 p-5 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50">
+      <p class="font-display font-bold text-amber-900 text-sm mb-2">🔧 TODO — Partie 1.3 + Partie 4.1</p>
+      <div class="todo-block">// api/events.php → retourner les événements en JSON
+// assets/js/app.js → loadEvents() : vrai fetch() + rendu des cartes
+// Remplacer les données mock par l'appel réel</div>
+      <p class="text-xs text-amber-800 mt-2">Les cartes affichées utilisent des <b>données mock locales</b>. Votre mission : les remplacer par un vrai appel AJAX vers api/events.php</p>
+    </div>
+  </section>
+
+  <!-- ── DASHBOARD ── -->
+  <section id="sec-dashboard" class="hidden">
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h2 class="font-display text-2xl font-bold text-slate-900">Dashboard Organisateur</h2>
+        <p class="text-slate-500 text-sm mt-1">Mise à jour automatique toutes les <b class="text-blue-600">30s</b></p>
+      </div>
+      <div class="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
+        <div class="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse"></div>
+        <span id="last-update" class="text-xs text-slate-500">En attente…</span>
+      </div>
+    </div>
+
+    <!-- KPI -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="kpi">
+        <p class="text-xs font-display font-bold text-slate-500 uppercase tracking-widest mb-3">Total inscrits</p>
+        <div class="stat-num text-slate-900" id="d-total">—</div>
+        <p class="text-xs text-slate-400 mt-2">tous événements</p>
+      </div>
+      <div class="kpi">
+        <p class="text-xs font-display font-bold text-slate-500 uppercase tracking-widest mb-3">Nouvelles 24h</p>
+        <div class="stat-num text-green-600" id="d-new">—</div>
+        <p class="text-xs text-slate-400 mt-2">inscriptions récentes</p>
+      </div>
+      <div class="kpi">
+        <p class="text-xs font-display font-bold text-slate-500 uppercase tracking-widest mb-3">Taux moyen</p>
+        <div class="stat-num text-amber-500" id="d-taux">—</div>
+        <p class="text-xs text-slate-400 mt-2">de remplissage</p>
+      </div>
+      <div class="kpi">
+        <p class="text-xs font-display font-bold text-slate-500 uppercase tracking-widest mb-3">Alertes 80%</p>
+        <div class="stat-num text-red-500" id="d-alert">—</div>
+        <p class="text-xs text-slate-400 mt-2">seuil atteint</p>
+      </div>
+    </div>
+
+    <!-- Top 3 -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm mb-6">
+      <h3 class="font-display font-bold text-slate-900 text-base mb-5">Top 3 — Événements les plus remplis</h3>
+      <div id="top-list" class="space-y-4"></div>
+    </div>
+
+    <!-- TODO -->
+    <div class="p-5 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50">
+      <p class="font-display font-bold text-blue-900 text-sm mb-2">🔧 TODO — Partie 4.2</p>
+      <div class="todo-block">// api/stats.php → endpoint JSON à créer
+// fetch toutes les 30s → mettre à jour les KPI
+// Notification toast si un événement passe à 100%
+// Si erreur API → réessayer après 10s sans casser l'interface</div>
+    </div>
+  </section>
+
+  <!-- ── CREATE ── -->
+  <section id="sec-create" class="hidden">
+    <div class="max-w-2xl mx-auto">
+      <div class="mb-8">
+        <h2 class="font-display text-2xl font-bold text-slate-900">Créer un événement</h2>
+        <p class="text-slate-500 text-sm mt-1">Les champs marqués * sont obligatoires.</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
+        <div class="space-y-5">
+          <div>
+            <label class="block text-xs font-display font-bold text-slate-600 uppercase tracking-widest mb-1">Titre *</label>
+            <input type="text" id="f-title" class="form-input" placeholder="Ex : DevFest Marrakech 2025" />
+          </div>
+          <div>
+            <label class="block text-xs font-display font-bold text-slate-600 uppercase tracking-widest mb-1">Description *</label>
+            <textarea id="f-desc" rows="3" class="form-input resize-none" placeholder="Décrivez votre événement…"></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-display font-bold text-slate-600 uppercase tracking-widest mb-1">Date *</label>
+              <input type="datetime-local" id="f-date" class="form-input" />
+            </div>
+            <div>
+              <label class="block text-xs font-display font-bold text-slate-600 uppercase tracking-widest mb-1">Lieu *</label>
+              <input type="text" id="f-lieu" class="form-input" placeholder="Ex : ENSA Marrakech" />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-display font-bold text-slate-600 uppercase tracking-widest mb-1">Capacité *</label>
+              <input type="number" id="f-cap" min="1" class="form-input" placeholder="50" />
+            </div>
+            <div>
+              <label class="block text-xs font-display font-bold text-slate-600 uppercase tracking-widest mb-1">Catégorie *</label>
+              <select id="f-cat" class="form-input">
+                <option value="">— Choisir —</option>
+                <option value="tech">Tech</option>
+                <option value="design">Design</option>
+                <option value="business">Business</option>
+                <option value="science">Science</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-display font-bold text-slate-600 uppercase tracking-widest mb-1">Email organisateur *</label>
+            <input type="email" id="f-email" class="form-input" placeholder="organisateur@example.ma" />
+          </div>
+
+          <!-- TODO -->
+          <div class="p-4 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50">
+            <p class="font-display font-bold text-amber-900 text-xs mb-1">🔧 TODO — Partie 1.2 + Partie 4.1</p>
+            <div class="todo-block">// events/create.php → corriger createEvent() (injection SQL !)
+// submitCreate() → POST fetch() vers events/create.php
+// Toast succès / erreur selon la réponse JSON</div>
+          </div>
+
+          <button onclick="submitCreate()"
+            class="w-full py-3 rounded-xl font-display font-bold text-sm text-white flex items-center justify-center gap-2"
+            style="background:#2563eb" id="btn-create">
+            <span id="lbl-create">Créer l'événement</span>
+            <span id="spn-create" class="spinner hidden"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- MODAL INSCRIPTION -->
+<div id="modal-reg" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="p-6 border-b border-slate-100 flex items-start justify-between">
+      <div>
+        <h3 class="font-display font-bold text-slate-900 text-lg" id="m-title">Inscription</h3>
+        <p class="text-slate-500 text-sm mt-1" id="m-info">—</p>
+      </div>
+      <button onclick="closeReg()" class="text-slate-400 hover:text-slate-700 text-xl font-bold leading-none">✕</button>
+    </div>
+    <div class="p-6 space-y-4">
+      <div>
+        <label class="block text-xs font-display font-bold text-slate-600 uppercase tracking-widest mb-1">Nom complet *</label>
+        <input id="r-name" type="text" class="form-input" placeholder="Votre nom" />
+      </div>
+      <div>
+        <label class="block text-xs font-display font-bold text-slate-600 uppercase tracking-widest mb-1">Email *</label>
+        <input id="r-email" type="email" class="form-input" placeholder="votre@email.ma" />
+      </div>
+      <div class="rounded-xl p-4 bg-slate-50 border border-slate-200">
+        <div class="flex justify-between text-xs font-display font-bold mb-2">
+          <span class="text-slate-500">Places restantes</span>
+          <span class="text-slate-900" id="m-places">—</span>
+        </div>
+        <div class="cap-bar"><div class="cap-bar-fill" id="m-bar" style="width:0%;background:#2563eb"></div></div>
+      </div>
+
+      <div class="p-3 rounded-lg border border-dashed border-amber-300 bg-amber-50">
+        <p class="font-display font-bold text-amber-900 text-xs mb-1">🔧 TODO — Partie 2.1 + 4.1</p>
+        <div class="todo-block" style="font-size:.75rem">// POST vers events/register.php
+// Email confirmation + détection seuil 80% → email alerte PDF
+// Mise à jour compteur sur la carte SANS rechargement</div>
+      </div>
+
+      <button onclick="submitReg()" id="btn-reg"
+        class="w-full py-3 rounded-xl font-display font-bold text-sm text-white flex items-center justify-center gap-2"
+        style="background:#2563eb">
+        <span id="lbl-reg">S'inscrire &amp; recevoir le ticket PDF</span>
+        <span id="spn-reg" class="spinner hidden"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LOGIN -->
+<div id="modal-login" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:380px">
+    <div class="p-6 border-b border-slate-100">
+      <h3 class="font-display font-bold text-slate-900 text-lg">Connexion Organisateur</h3>
+    </div>
+    <div class="p-6 space-y-4">
+      <div>
+        <label class="block text-xs font-display font-bold text-slate-600 uppercase tracking-widest mb-1">Email</label>
+        <input type="email" class="form-input" placeholder="admin@ensa.ma" />
+      </div>
+      <div>
+        <label class="block text-xs font-display font-bold text-slate-600 uppercase tracking-widest mb-1">Mot de passe</label>
+        <input type="password" class="form-input" placeholder="••••••••" />
+      </div>
+      <div class="p-3 rounded-lg bg-blue-50 border border-blue-200">
+        <p class="text-xs text-blue-800 font-display">ℹ️ Auth via sessions PHP — à implémenter dans <b>auth/login.php</b></p>
+      </div>
+      <button onclick="fakeLogin()"
+        class="w-full py-3 rounded-xl font-display font-bold text-sm text-white"
+        style="background:#0f1f3d">Se connecter</button>
+      <button onclick="document.getElementById('modal-login').classList.add('hidden')"
+        class="w-full py-2 text-sm text-slate-400 hover:text-slate-600">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- FOOTER -->
+<footer class="mt-16 border-t border-slate-200 py-8 px-6 bg-white">
+  <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-2">
+      <span class="font-display font-bold text-sm text-slate-900">EventHub Pro</span>
+      <span class="text-slate-300">·</span>
+      <span class="text-xs text-slate-400">MVP Examen PHP · 4ème Année · ENSA Marrakech · Univ. Cadi Ayyad</span>
+    </div>
+    <div class="flex gap-3 text-xs text-slate-400 font-display">
+      <span>PDO</span><span>·</span>
+      <span>PHPMailer</span><span>·</span>
+      <span>TCPDF / Dompdf</span><span>·</span>
+      <span>Fetch API</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/app.js"></script>
+</body>
+</html>
